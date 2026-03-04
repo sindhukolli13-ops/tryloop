@@ -1,0 +1,4 @@
+// Trial booking + Stripe checkout
+export default function CheckoutPage() {
+  return <main><h1>Checkout</h1></main>;
+}
