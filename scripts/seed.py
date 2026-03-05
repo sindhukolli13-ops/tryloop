@@ -17,6 +17,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "backend"))
 
 from core.database import Base, SessionLocal, engine
+from core.security import hash_password
 from models.user import User, UserRole
 from models.device import Device
 from models.device_unit import ConditionGrade, DeviceUnit, UnitStatus
@@ -41,31 +42,32 @@ def seed():
             return
 
         # ── Users ──
+        # Passwords: admin123 for admin/staff, customer123 for customers
         admin = User(
             email="admin@tryloop.nl",
             name="Tryloop Admin",
-            hashed_password="$2b$12$placeholder_hash_replace_me",  # placeholder — will use passlib in auth step
+            hashed_password=hash_password("admin123"),
             role=UserRole.ADMIN,
             email_verified=True,
         )
         staff = User(
             email="staff@tryloop.nl",
             name="Jan de Vries",
-            hashed_password="$2b$12$placeholder_hash_replace_me",
+            hashed_password=hash_password("admin123"),
             role=UserRole.STAFF,
             email_verified=True,
         )
         customer1 = User(
             email="emma@example.com",
             name="Emma van den Berg",
-            hashed_password="$2b$12$placeholder_hash_replace_me",
+            hashed_password=hash_password("customer123"),
             role=UserRole.CUSTOMER,
             email_verified=True,
         )
         customer2 = User(
             email="lucas@example.com",
             name="Lucas Jansen",
-            hashed_password="$2b$12$placeholder_hash_replace_me",
+            hashed_password=hash_password("customer123"),
             role=UserRole.CUSTOMER,
             email_verified=True,
         )
@@ -80,7 +82,7 @@ def seed():
                 category="phones",
                 description="Latest iPhone with titanium design and A17 Pro chip.",
                 specs={"storage": "256GB", "color": "Natural Titanium", "display": "6.1 inch"},
-                images=["iphone15pro_1.jpg", "iphone15pro_2.jpg"],
+                images=["iphone15pro_1.svg", "iphone15pro_2.svg"],
                 trial_price_7d=49.00,
                 trial_price_14d=79.00,
                 purchase_price=1199.00,
@@ -93,7 +95,7 @@ def seed():
                 category="laptops",
                 description="Thin and light laptop with the M3 chip. Perfect for everyday use.",
                 specs={"storage": "512GB", "ram": "16GB", "display": "13.6 inch"},
-                images=["macbook_air_m3_1.jpg"],
+                images=["macbook_air_m3_1.svg"],
                 trial_price_7d=79.00,
                 trial_price_14d=129.00,
                 purchase_price=1399.00,
@@ -106,7 +108,7 @@ def seed():
                 category="tablets",
                 description="Versatile tablet with M1 chip for work and play.",
                 specs={"storage": "256GB", "display": "10.9 inch", "color": "Blue"},
-                images=["ipad_air_1.jpg"],
+                images=["ipad_air_1.svg"],
                 trial_price_7d=39.00,
                 trial_price_14d=59.00,
                 purchase_price=699.00,
@@ -119,7 +121,7 @@ def seed():
                 category="phones",
                 description="Premium Android phone with S Pen and AI features.",
                 specs={"storage": "256GB", "color": "Titanium Gray", "display": "6.8 inch"},
-                images=["galaxy_s24_1.jpg"],
+                images=["galaxy_s24_1.svg"],
                 trial_price_7d=45.00,
                 trial_price_14d=75.00,
                 purchase_price=1099.00,
@@ -132,7 +134,7 @@ def seed():
                 category="headphones",
                 description="Industry-leading noise cancelling headphones.",
                 specs={"type": "Over-ear", "battery": "30 hours", "anc": "Yes"},
-                images=["sony_xm5_1.jpg"],
+                images=["sony_xm5_1.svg"],
                 trial_price_7d=19.00,
                 trial_price_14d=29.00,
                 purchase_price=349.00,
@@ -145,7 +147,7 @@ def seed():
                 category="wearables",
                 description="Advanced health and fitness tracking on your wrist.",
                 specs={"size": "45mm", "connectivity": "GPS + Cellular"},
-                images=["apple_watch_9_1.jpg"],
+                images=["apple_watch_9_1.svg"],
                 trial_price_7d=25.00,
                 trial_price_14d=39.00,
                 purchase_price=449.00,
