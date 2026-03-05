@@ -6,9 +6,11 @@ Routers and middleware will be registered here as they are built.
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from core.config import settings
 from core.database import engine
+from routers import auth
 
 
 @asynccontextmanager
@@ -30,6 +32,22 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+# ── CORS — allow the Next.js frontend to call the API ──
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        settings.NEXTAUTH_URL,  # frontend URL (e.g. http://localhost:3000)
+        "http://localhost:3000",
+        "https://tryloop.nl",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ── Register routers ──
+app.include_router(auth.router)
 
 
 @app.get("/health")

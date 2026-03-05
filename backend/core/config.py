@@ -33,8 +33,13 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = ""
     EMAIL_FROM: str = "noreply@tryloop.nl"
 
+    # ── OAuth — Google ──
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+
     # ── App ──
     APP_ENV: str = "development"
+    NEXTAUTH_URL: str = "http://localhost:3000"  # frontend URL for email links
 
     # ── Sustainability — kg CO₂ saved per device category ──
     CO2_PER_PHONE_KG: float = 70
