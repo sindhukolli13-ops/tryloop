@@ -3,7 +3,13 @@
  * Injects the Authorization header and handles token refresh on 401.
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+// Use different URLs for client vs server
+// - Client: NEXT_PUBLIC_API_URL is available and points to localhost:8000
+// - Server: Use Docker service name 'backend' so NextAuth can reach it from the container
+const isClient = typeof window !== "undefined";
+const API_BASE = isClient
+  ? process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+  : process.env.API_URL_INTERNAL || "http://backend:8000";
 
 interface ApiOptions extends Omit<RequestInit, "body"> {
   body?: unknown;
