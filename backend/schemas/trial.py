@@ -58,6 +58,19 @@ class TrialCancelRequest(BaseModel):
     reason: str | None = None
 
 
+class ReturnProcessRequest(BaseModel):
+    """Admin request to process a device return."""
+    condition_on_return: str = Field(
+        default="good",
+        description="Condition: good, needs_cleaning, needs_repair, damaged",
+    )
+    deposit_deduction: float = Field(
+        default=0.0,
+        ge=0,
+        description="Amount to deduct from deposit (for damage)",
+    )
+
+
 # ── Stripe checkout schemas ──
 
 class CheckoutSessionResponse(BaseModel):

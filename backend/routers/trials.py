@@ -12,6 +12,7 @@ from models.user import User, UserRole
 from schemas.auth import MessageResponse
 from schemas.trial import (
     CheckoutSessionResponse,
+    ReturnProcessRequest,
     TrialCancelRequest,
     TrialCreateRequest,
     TrialListResponse,
@@ -76,6 +77,16 @@ def cancel_my_trial(
     return trial_service.cancel_trial(db, trial_id, user_id=current_user.id)
 
 
+@router.post("/my/{trial_id}/return", response_model=TrialResponse)
+def request_return(
+    trial_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Customer: request a return for an active trial."""
+    return trial_service.request_return(db, trial_id, user_id=current_user.id)
+
+
 # ── Admin endpoints ──
 
 @router.get("", response_model=TrialListResponse)
@@ -130,3 +141,19 @@ def admin_cancel_trial(
 ):
     """Admin: cancel any trial (only before shipment). Admin only."""
     return trial_service.cancel_trial(db, trial_id)
+
+
+@router.post("/{trial_id}/return", response_model=TrialResponse)
+def process_return(
+    trial_id: int,
+    body: ReturnProcessRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.ADMIN, UserRole.STAFF])),
+):
+    """Admin: process a device return with deposit refund and refurbishment log."""
+    return trial_service.process_return(
+        db,
+        trial_id,
+        condition_on_return=body.condition_on_return,
+        deposit_deduction=body.deposit_deduction,
+    )

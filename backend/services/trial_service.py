@@ -14,7 +14,8 @@ from core.config import settings
 from models.device_unit import UnitStatus
 from models.payment import PaymentStatus, PaymentType
 from models.trial import Trial, TrialStatus
-from repositories import device_repo, device_unit_repo, payment_repo, trial_repo
+from models.refurbishment_log import ReturnCondition
+from repositories import device_repo, device_unit_repo, payment_repo, refurbishment_repo, trial_repo
 from schemas.trial import (
     CheckoutSessionResponse,
     TrialListResponse,
@@ -382,4 +383,110 @@ def cancel_trial(
 
     trial_repo.update_status(db, trial, TrialStatus.CANCELLED)
     logger.info("Trial %d cancelled by user %d", trial_id, trial.user_id)
+    return _trial_to_response(trial)
+
+
+# ── Return processing + deposit refund ──
+
+def process_return(
+    db: Session,
+    trial_id: int,
+    *,
+    condition_on_return: str = "good",
+    deposit_deduction: float = 0.0,
+) -> TrialResponse:
+    """
+    Admin: process a device return.
+    1. Validate trial is in ACTIVE status
+    2. Transition trial to RETURNED
+    3. Update device unit status to RETURNED
+    4. Process deposit refund via Stripe (minus any deduction)
+    5. Create a refurbishment log entry
+    """
+    trial = trial_repo.get_by_id(db, trial_id)
+    if not trial:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Trial not found")
+
+    _validate_transition(trial.status, TrialStatus.RETURNED)
+
+    # Validate deduction doesn't exceed deposit
+    deposit = float(trial.deposit_amount)
+    if deposit_deduction < 0 or deposit_deduction > deposit:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Deduction must be between 0 and {deposit}",
+        )
+
+    # Transition trial → RETURNED
+    trial_repo.update_status(db, trial, TrialStatus.RETURNED)
+
+    # Update device unit → RETURNED
+    unit = device_unit_repo.get_by_id(db, trial.device_unit_id)
+    if unit:
+        device_unit_repo.update(db, unit, data={"status": UnitStatus.RETURNED})
+
+    # Process deposit refund via Stripe (deposit minus any damage deduction)
+    refund_amount = deposit - deposit_deduction
+    if refund_amount > 0 and trial.stripe_payment_intent_id:
+        refund_cents = int(refund_amount * 100)
+        stripe_service.create_refund(
+            payment_intent_id=trial.stripe_payment_intent_id,
+            amount_cents=refund_cents,
+        )
+
+        # Record deposit refund payment
+        payment_repo.create(db, data={
+            "user_id": trial.user_id,
+            "trial_id": trial.id,
+            "type": PaymentType.DEPOSIT_REFUND,
+            "amount": refund_amount,
+            "currency": "EUR",
+            "stripe_intent_id": trial.stripe_payment_intent_id,
+            "status": PaymentStatus.REFUNDED,
+        })
+
+    # Auto-create refurbishment log entry so admin can track the refurb process
+    refurbishment_repo.create(db, data={
+        "device_unit_id": trial.device_unit_id,
+        "trial_id": trial.id,
+        "condition_on_return": condition_on_return,
+        "status": "pending",
+        "tasks": [],
+    })
+
+    logger.info(
+        "Trial %d returned: deposit refund=%.2f deduction=%.2f condition=%s",
+        trial_id, refund_amount, deposit_deduction, condition_on_return,
+    )
+    return _trial_to_response(trial)
+
+
+def request_return(
+    db: Session,
+    trial_id: int,
+    *,
+    user_id: int,
+) -> TrialResponse:
+    """
+    Customer: request a return for an active trial.
+    This is a soft action — marks the trial as ready for return processing.
+    The actual return is finalized by admin via process_return().
+    For now, this just validates the trial is active and belongs to the user.
+    """
+    trial = trial_repo.get_by_id(db, trial_id)
+    if not trial:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Trial not found")
+    if trial.user_id != user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your trial")
+
+    if trial.status != TrialStatus.ACTIVE:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only active trials can be returned",
+        )
+
+    # For the MVP, the customer "requesting" a return is informational.
+    # The actual state change happens when admin processes the return.
+    # We return the trial as-is with instructions.
+    logger.info("Return requested for trial %d by user %d", trial_id, user_id)
     return _trial_to_response(trial)
