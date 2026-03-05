@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import Link from "next/link";
 import { DeviceResponse, getDevice } from "@/lib/api";
 
 export default function DeviceDetailPage() {
