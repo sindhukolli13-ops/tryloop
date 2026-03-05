@@ -201,3 +201,75 @@ export function compareDevices(ids: number[]) {
   const qs = ids.map((id) => `ids=${id}`).join("&");
   return api<DeviceCompareResponse>(`/devices/compare?${qs}`);
 }
+
+// ── Trial types ──
+
+export interface TrialResponse {
+  id: number;
+  user_id: number;
+  device_id: number;
+  device_unit_id: number;
+  duration_days: number;
+  start_date: string | null;
+  end_date: string | null;
+  status: string;
+  trial_fee: number;
+  deposit_amount: number;
+  stripe_payment_intent_id: string | null;
+  created_at: string;
+  updated_at: string;
+  device_name: string | null;
+  device_brand: string | null;
+  device_image: string | null;
+}
+
+export interface TrialListResponse {
+  items: TrialResponse[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export interface CheckoutSessionResponse {
+  checkout_url: string;
+  session_id: string;
+  trial_id: number;
+}
+
+// ── Typed trial endpoints ──
+
+export function createTrialCheckout(
+  data: { device_id: number; duration_days: number },
+  token: string
+) {
+  return api<CheckoutSessionResponse>("/trials/checkout", {
+    method: "POST",
+    body: data,
+    token,
+  });
+}
+
+export function getMyTrials(
+  token: string,
+  params: { page?: number; page_size?: number; status?: string } = {}
+) {
+  const searchParams = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      searchParams.append(key, String(value));
+    }
+  });
+  const qs = searchParams.toString();
+  return api<TrialListResponse>(`/trials/my${qs ? `?${qs}` : ""}`, { token });
+}
+
+export function getMyTrial(trialId: number, token: string) {
+  return api<TrialResponse>(`/trials/my/${trialId}`, { token });
+}
+
+export function cancelMyTrial(trialId: number, token: string) {
+  return api<TrialResponse>(`/trials/my/${trialId}/cancel`, {
+    method: "POST",
+    token,
+  });
+}

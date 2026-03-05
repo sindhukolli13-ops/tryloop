@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import Link from "next/link";
 import { DeviceResponse, getDevice } from "@/lib/api";
 
 export default function DeviceDetailPage() {
@@ -171,13 +172,22 @@ export default function DeviceDetailPage() {
             </div>
           </div>
 
-          {/* CTA — links to checkout (to be built in Step 5) */}
-          <button
-            disabled={!isAvailable}
-            className="w-full rounded-lg bg-stone-800 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-stone-700 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500"
-          >
-            {isAvailable ? "Start a Trial" : "Currently Unavailable"}
-          </button>
+          {/* CTA — links to checkout */}
+          {isAvailable ? (
+            <Link
+              href={`/checkout?device_id=${device.id}`}
+              className="block w-full rounded-lg bg-stone-800 px-6 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-stone-700"
+            >
+              Start a Trial
+            </Link>
+          ) : (
+            <button
+              disabled
+              className="w-full rounded-lg bg-gray-300 px-6 py-3 text-sm font-semibold text-gray-500 cursor-not-allowed"
+            >
+              Currently Unavailable
+            </button>
+          )}
           <p className="mt-2 text-center text-xs text-gray-400">
             Trial fee is non-refundable. Deposit is fully refunded on return.
           </p>
