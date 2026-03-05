@@ -120,3 +120,84 @@ export function authGoogle(id_token: string) {
 export function getMe(token: string) {
   return api<UserResponse>("/auth/me", { token });
 }
+
+// ── Device types ──
+
+export interface DeviceResponse {
+  id: number;
+  name: string;
+  brand: string;
+  category: string;
+  description: string | null;
+  specs: Record<string, string> | null;
+  images: string[] | null;
+  trial_price_7d: number;
+  trial_price_14d: number;
+  purchase_price: number;
+  deposit_amount: number;
+  is_featured: boolean;
+  is_active: boolean;
+  available_units: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DeviceListResponse {
+  items: DeviceResponse[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export interface DeviceCompareResponse {
+  devices: DeviceResponse[];
+}
+
+export interface FilterOptions {
+  categories: string[];
+  brands: string[];
+}
+
+// ── Device query params ──
+
+export interface DeviceListParams {
+  page?: number;
+  page_size?: number;
+  category?: string;
+  brand?: string;
+  search?: string;
+  min_price?: number;
+  max_price?: number;
+  is_featured?: boolean;
+  available_only?: boolean;
+}
+
+// ── Typed device endpoints ──
+
+export function getDevices(params: DeviceListParams = {}) {
+  const searchParams = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      searchParams.append(key, String(value));
+    }
+  });
+  const qs = searchParams.toString();
+  return api<DeviceListResponse>(`/devices${qs ? `?${qs}` : ""}`);
+}
+
+export function getDevice(id: number) {
+  return api<DeviceResponse>(`/devices/${id}`);
+}
+
+export function getFeaturedDevices(limit = 6) {
+  return api<DeviceResponse[]>(`/devices/featured?limit=${limit}`);
+}
+
+export function getFilterOptions() {
+  return api<FilterOptions>("/devices/filters");
+}
+
+export function compareDevices(ids: number[]) {
+  const qs = ids.map((id) => `ids=${id}`).join("&");
+  return api<DeviceCompareResponse>(`/devices/compare?${qs}`);
+}
