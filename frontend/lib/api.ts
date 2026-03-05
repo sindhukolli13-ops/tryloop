@@ -273,3 +273,147 @@ export function cancelMyTrial(trialId: number, token: string) {
     token,
   });
 }
+
+// ── Device Unit types ──
+
+export interface DeviceUnitResponse {
+  id: number;
+  device_id: number;
+  serial_number: string;
+  condition_grade: string;
+  status: string;
+  rental_count: number;
+  total_lifecycle_revenue: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DeviceUnitListResponse {
+  items: DeviceUnitResponse[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+// ── Admin device endpoints ──
+
+export function adminCreateDevice(
+  data: {
+    name: string;
+    brand: string;
+    category: string;
+    description?: string;
+    specs?: Record<string, string>;
+    images?: string[];
+    trial_price_7d: number;
+    trial_price_14d: number;
+    purchase_price: number;
+    deposit_amount: number;
+    is_featured?: boolean;
+    is_active?: boolean;
+  },
+  token: string
+) {
+  return api<DeviceResponse>("/devices", { method: "POST", body: data, token });
+}
+
+export function adminUpdateDevice(
+  id: number,
+  data: Partial<{
+    name: string;
+    brand: string;
+    category: string;
+    description: string;
+    specs: Record<string, string>;
+    images: string[];
+    trial_price_7d: number;
+    trial_price_14d: number;
+    purchase_price: number;
+    deposit_amount: number;
+    is_featured: boolean;
+    is_active: boolean;
+  }>,
+  token: string
+) {
+  return api<DeviceResponse>(`/devices/${id}`, {
+    method: "PATCH",
+    body: data,
+    token,
+  });
+}
+
+export function adminDeleteDevice(id: number, token: string) {
+  return api<{ message: string }>(`/devices/${id}`, {
+    method: "DELETE",
+    token,
+  });
+}
+
+// ── Admin inventory (unit) endpoints ──
+
+export function adminGetUnits(
+  token: string,
+  params: {
+    page?: number;
+    page_size?: number;
+    device_id?: number;
+    status?: string;
+    condition_grade?: string;
+  } = {}
+) {
+  const searchParams = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      searchParams.append(key, String(value));
+    }
+  });
+  const qs = searchParams.toString();
+  return api<DeviceUnitListResponse>(
+    `/inventory/units${qs ? `?${qs}` : ""}`,
+    { token }
+  );
+}
+
+export function adminGetUnit(unitId: number, token: string) {
+  return api<DeviceUnitResponse>(`/inventory/units/${unitId}`, { token });
+}
+
+export function adminCreateUnit(
+  data: { device_id: number; serial_number: string; condition_grade?: string },
+  token: string
+) {
+  return api<DeviceUnitResponse>("/inventory/units", {
+    method: "POST",
+    body: data,
+    token,
+  });
+}
+
+export function adminUpdateUnit(
+  unitId: number,
+  data: { serial_number?: string; condition_grade?: string; status?: string },
+  token: string
+) {
+  return api<DeviceUnitResponse>(`/inventory/units/${unitId}`, {
+    method: "PATCH",
+    body: data,
+    token,
+  });
+}
+
+export function adminDeleteUnit(unitId: number, token: string) {
+  return api<{ message: string }>(`/inventory/units/${unitId}`, {
+    method: "DELETE",
+    token,
+  });
+}
+
+export function adminGetUnitStatusCounts(
+  deviceId: number,
+  token: string
+) {
+  return api<Record<string, number>>(
+    `/inventory/units/device/${deviceId}/status-counts`,
+    { token }
+  );
+}
